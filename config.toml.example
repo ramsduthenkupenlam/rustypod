@@ -1,0 +1,9 @@
+directory = "/home/john/Downloads/rustypod"
+
+[[podcasts]]
+name = "Linux Unplugged"
+uri = "https://feeds.fireside.fm/linuxunplugged/rss"
+
+[[podcasts]]
+name = "Python Bytes"
+uri = "https://pythonbytes.fm/episodes/rss"

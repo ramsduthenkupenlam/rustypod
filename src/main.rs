@@ -1,11 +1,16 @@
 extern crate clap;
 extern crate feed_rs;
 
-use clap::{App, Arg};
-use reqwest::blocking;
-use feed_rs::parser;
+use std::path::PathBuf;
+use std::process;
 
-fn main() {
+use anyhow::{Context, Result};
+use clap::{App, Arg};
+use feed_rs::parser;
+use reqwest::blocking;
+use rustypod::{expected_config_location, find_config, run};
+
+fn main() -> Result<()> {
     let matches = App::new("rustpod")
         .version("0.0.0")
         .author("John Ramsden and Joe Puthenkulam")
@@ -20,15 +25,50 @@ fn main() {
         )
         .get_matches();
 
-    let body = blocking::get("https://pythonbytes.fm/episodes/rss")
-        .unwrap().text().unwrap();
+    // let body = blocking::get("https://pythonbytes.fm/episodes/rss")
+    //     .unwrap().text().unwrap();
+    //
+    // let feed_from_xml = parser::parse(body.as_bytes()).unwrap();
+    //
+    // for e in feed_from_xml.entries {
+    //     println!("Date: {}", e.published.unwrap());
+    //     println!("Title: {}", e.title.unwrap().content);
+    //     println!("Link: {}", e.content.unwrap().src.unwrap().href);
+    //     println!("{}", "");
+    // }
 
-    let feed_from_xml = parser::parse(body.as_bytes()).unwrap();
+    let config_file = match matches.value_of("config") {
+        Some(c) => PathBuf::from(c),
+        None => {
+            let cfg = find_config();
+            match cfg {
+                Ok(c) => match c {
+                    Some(c) => c,
+                    None => {
+                        let conf_expected = expected_config_location();
+                        eprintln!("No config file found in system or user directories.");
+                        eprintln!("{} or {}", conf_expected.0, conf_expected.1);
+                        process::exit(1);
+                    }
+                },
+                Err(e) => {
+                    return Err(anyhow::anyhow!(
+                        "Error occurred looking for config file {:?}",
+                        e
+                    ));
+                }
+            }
+        }
+    };
 
-    for e in feed_from_xml.entries {
-        println!("Date: {}", e.published.unwrap());
-        println!("Title: {}", e.title.unwrap().content);
-        println!("Link: {}", e.content.unwrap().src.unwrap().href);
-        println!("{}", "");
+    let config_file = config_file
+        .to_str()
+        .context("Config file is invalid unicode.")?;
+
+    match run(config_file) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            return Err(anyhow::anyhow!("{}", e));
+        }
     }
 }
