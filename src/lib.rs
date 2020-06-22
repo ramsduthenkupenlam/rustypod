@@ -1,10 +1,13 @@
+mod downloader;
+
 extern crate serde;
 extern crate serde_derive;
 extern crate toml;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fs, str};
 
+use crate::downloader::downloader::Podcast;
 use anyhow::Result;
 use serde_derive::Deserialize;
 use std::collections::HashMap;
@@ -35,7 +38,7 @@ pub enum PodError {
 
 #[derive(Deserialize)]
 struct Config {
-    podcasts: Vec<HashMap<String, String>>,
+    podcasts: Vec<HashMap<String, String>>, // TODO: Parse and convert environment variables
     directory: String,
 }
 
@@ -200,6 +203,15 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
                 )));
             }
         }
+    }
+
+    for pc in config.podcasts {
+        println!("{:?}", pc);
+        let p = Podcast::new(
+            String::from(pc.get("name").unwrap()),
+            String::from(pc.get("uri").unwrap()),
+        );
+        p.download(Path::new(download_dir.as_path()));
     }
 
     Ok(())

@@ -25,18 +25,6 @@ fn main() -> Result<()> {
         )
         .get_matches();
 
-    // let body = blocking::get("https://pythonbytes.fm/episodes/rss")
-    //     .unwrap().text().unwrap();
-    //
-    // let feed_from_xml = parser::parse(body.as_bytes()).unwrap();
-    //
-    // for e in feed_from_xml.entries {
-    //     println!("Date: {}", e.published.unwrap());
-    //     println!("Title: {}", e.title.unwrap().content);
-    //     println!("Link: {}", e.content.unwrap().src.unwrap().href);
-    //     println!("{}", "");
-    // }
-
     let config_file = match matches.value_of("config") {
         Some(c) => PathBuf::from(c),
         None => {
