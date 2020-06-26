@@ -7,8 +7,10 @@ extern crate toml;
 use std::path::{Path, PathBuf};
 use std::{fs, str};
 
-use crate::downloader::downloader::Podcast;
-use anyhow::Result;
+use crate::downloader::downloader::{Podcast, PodcastEntry};
+
+use anyhow::{Error, Result};
+use rayon::prelude::*;
 use serde_derive::Deserialize;
 use std::collections::HashMap;
 use std::io::ErrorKind;
@@ -205,14 +207,19 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
         }
     }
 
+    let mut pods: Vec<PodcastEntry> = Vec::new();
+
     for pc in config.podcasts {
-        println!("{:?}", pc);
-        let p = Podcast::new(
+        let pc = Podcast::new(
             String::from(pc.get("name").unwrap()),
             String::from(pc.get("uri").unwrap()),
         );
-        p.download(Path::new(download_dir.as_path()));
+        pods.extend(pc.entries());
+        pc.setup_tree(&download_dir);
     }
+
+    let results: Vec<Result<(), Error>> =
+        pods.par_iter().map(|p| p.download(&download_dir)).collect();
 
     Ok(())
 }

@@ -11,7 +11,7 @@ use reqwest::blocking;
 use rustypod::{expected_config_location, find_config, run};
 
 fn main() -> Result<()> {
-    let matches = App::new("rustpod")
+    let matches = App::new("rustypod")
         .version("0.0.0")
         .author("John Ramsden and Joe Puthenkulam")
         .about("Podcast downloader")

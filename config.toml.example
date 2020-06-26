@@ -1,4 +1,4 @@
-directory = "/home/john/Downloads/rustypod"
+directory = "rustypod"
 
 [[podcasts]]
 name = "Linux Unplugged"
