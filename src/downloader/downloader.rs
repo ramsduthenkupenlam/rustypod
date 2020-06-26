@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use crate::PodError;
@@ -8,8 +7,6 @@ use reqwest::blocking;
 use std::fs;
 use std::fs::File;
 use std::io::copy;
-use std::thread;
-use thiserror::Error;
 
 pub struct PodcastEntry {
     pub(crate) uri: String,
@@ -55,20 +52,27 @@ impl Podcast {
         }
     }
 
-    pub fn entries(&self) -> Vec<PodcastEntry> {
+    pub fn entries(&self, episodes: usize) -> Vec<PodcastEntry> {
         let body = blocking::get(&self.uri).unwrap().text().unwrap();
         let feed_from_xml = parser::parse(body.as_bytes()).unwrap();
 
-        let ents: Vec<PodcastEntry> = feed_from_xml
-            .entries
-            .into_iter()
-            .map(|e| PodcastEntry {
+        let mut ents = Vec::new();
+
+        let mut n = 0;
+
+        for e in feed_from_xml.entries {
+            if n >= episodes {
+                break;
+            }
+
+            ents.push(PodcastEntry {
                 uri: String::from(e.content.unwrap().src.unwrap().href),
                 title: e.title.unwrap().content.to_string(),
                 date: e.published.unwrap().to_string(),
                 name: self.name.clone(),
-            })
-            .collect();
+            });
+            n += 1;
+        }
 
         ents
     }

@@ -6,8 +6,6 @@ use std::process;
 
 use anyhow::{Context, Result};
 use clap::{App, Arg};
-use feed_rs::parser;
-use reqwest::blocking;
 use rustypod::{expected_config_location, find_config, run};
 
 fn main() -> Result<()> {

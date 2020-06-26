@@ -4,7 +4,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate toml;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::{fs, str};
 
 use crate::downloader::downloader::{Podcast, PodcastEntry};
@@ -13,7 +13,6 @@ use anyhow::{Error, Result};
 use rayon::prelude::*;
 use serde_derive::Deserialize;
 use std::collections::HashMap;
-use std::io::ErrorKind;
 use thiserror::Error;
 
 const PROGRAM: &str = "rustypod";
@@ -42,6 +41,15 @@ pub enum PodError {
 struct Config {
     podcasts: Vec<HashMap<String, String>>, // TODO: Parse and convert environment variables
     directory: String,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            podcasts: Vec::new(),
+            directory: String::from(""),
+        }
+    }
 }
 
 pub fn expected_config_location() -> (String, String) {
@@ -210,15 +218,15 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
     let mut pods: Vec<PodcastEntry> = Vec::new();
 
     for pc in config.podcasts {
-        let pc = Podcast::new(
+        let pod = Podcast::new(
             String::from(pc.get("name").unwrap()),
             String::from(pc.get("uri").unwrap()),
         );
-        pods.extend(pc.entries());
-        pc.setup_tree(&download_dir);
+        pods.extend(pod.entries(str::parse::<usize>(pc.get("episodes").unwrap()).unwrap()));
+        pod.setup_tree(&download_dir); // TODO: Error handling
     }
 
-    let results: Vec<Result<(), Error>> =
+    let _results: Vec<Result<(), Error>> =
         pods.par_iter().map(|p| p.download(&download_dir)).collect();
 
     Ok(())
