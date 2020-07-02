@@ -3,9 +3,9 @@ directory = "downloads"
 [[podcasts]]
 name = "Linux Unplugged"
 uri = "https://feeds.fireside.fm/linuxunplugged/rss"
-episodes = "3"
+episodes = 3
 
 [[podcasts]]
 name = "Python Bytes"
 uri = "https://pythonbytes.fm/episodes/rss"
-episodes = "1" # Default
+#episodes = 1 # Default

@@ -38,8 +38,23 @@ pub enum PodError {
 }
 
 #[derive(Deserialize)]
+struct PodcastConfigEntry {
+    name: String,
+    uri: String,
+
+    #[serde(default = "PodcastConfigEntry::default_episodes")]
+    episodes: usize,
+}
+
+impl PodcastConfigEntry {
+    fn default_episodes() -> usize {
+        1
+    }
+}
+
+#[derive(Deserialize)]
 struct Config {
-    podcasts: Vec<HashMap<String, String>>, // TODO: Parse and convert environment variables
+    podcasts: Vec<PodcastConfigEntry>, // TODO: Parse and convert environment variables
     directory: String,
 }
 
@@ -218,11 +233,8 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
     let mut pods: Vec<PodcastEntry> = Vec::new();
 
     for pc in config.podcasts {
-        let pod = Podcast::new(
-            String::from(pc.get("name").unwrap()),
-            String::from(pc.get("uri").unwrap()),
-        );
-        pods.extend(pod.entries(str::parse::<usize>(pc.get("episodes").unwrap()).unwrap()));
+        let pod = Podcast::new(String::from(pc.name), String::from(pc.uri));
+        pods.extend(pod.entries(pc.episodes));
         pod.setup_tree(&download_dir); // TODO: Error handling
     }
 

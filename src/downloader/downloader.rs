@@ -9,10 +9,10 @@ use std::fs::File;
 use std::io::copy;
 
 pub struct PodcastEntry {
-    pub(crate) uri: String,
-    pub(crate) date: String,
-    pub(crate) title: String,
-    pub(crate) name: String,
+    uri: String,
+    date: String,
+    title: String,
+    name: String,
 }
 
 impl PodcastEntry {
@@ -23,6 +23,19 @@ impl PodcastEntry {
             uri: uri,
             date: date,
         }
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+    pub fn title(&self) -> &String {
+        &self.title
+    }
+    pub fn uri(&self) -> &String {
+        &self.uri
+    }
+    pub fn date(&self) -> &String {
+        &self.date
     }
 
     pub fn download(&self, location: &PathBuf) -> Result<(), Error> {
@@ -50,6 +63,13 @@ impl Podcast {
             name: name,
             uri: uri,
         }
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+    pub fn uri(&self) -> &String {
+        &self.uri
     }
 
     pub fn entries(&self, episodes: usize) -> Vec<PodcastEntry> {
