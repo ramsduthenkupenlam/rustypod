@@ -39,11 +39,18 @@ impl PodcastEntry {
     }
 
     pub fn download(&self, location: &PathBuf) -> Result<(), Error> {
-        let p = location.clone().join(&self.name).join(&self.title);
+        let mut resp = blocking::get(&self.uri).unwrap();
+
+        let ext: Vec<&str> = self.uri.rsplit('.').collect::<Vec<&str>>();
+        let mut p = location.clone().join(&self.name);
+
+        if ext.len() > 0 {
+            p = p.join(vec![self.title.clone(), ext[0].to_string()].join("."));
+        } else {
+            p = p.join(&self.title.clone());
+        };
 
         println!("Downloaded to {} ...", p.to_str().unwrap());
-
-        let mut resp = blocking::get(&self.uri).unwrap();
 
         let mut out = File::create(p).expect("failed to create file");
         copy(&mut resp, &mut out).expect("failed to copy content");
