@@ -1,5 +1,6 @@
 extern crate clap;
 extern crate feed_rs;
+extern crate rusqlite;
 
 use std::path::PathBuf;
 use std::process;

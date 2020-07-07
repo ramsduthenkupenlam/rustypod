@@ -1,4 +1,5 @@
 mod downloader;
+mod logger;
 
 extern crate serde;
 extern crate serde_derive;
@@ -8,9 +9,9 @@ use std::path::PathBuf;
 use std::{fs, str};
 
 use crate::downloader::downloader::{Podcast, PodcastEntry};
-
 use anyhow::{Error, Result};
 use rayon::prelude::*;
+use crate::logger::logger::Log;
 use serde_derive::Deserialize;
 use std::collections::HashMap;
 use thiserror::Error;
@@ -230,7 +231,24 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
         }
     }
 
+
     let mut pods: Vec<PodcastEntry> = Vec::new();
+
+    let mut log = Log::new();
+
+    match log.open_connection() {
+        Ok(_c) => _c,
+        Err(e) => return Err(PodError::DirectoryError(format!("{:?}",
+            e
+        )))
+    };
+
+    match log.update_log("pod", "I am pod") {
+        Ok(_c) => _c,
+        Err(e) => return Err(PodError::DirectoryError(format!("{:?}",
+            e
+        )))
+    };
 
     for pc in config.podcasts {
         let pod = Podcast::new(String::from(pc.name), String::from(pc.uri));
