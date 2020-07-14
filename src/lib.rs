@@ -5,6 +5,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate toml;
 
+use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::{fs, str};
 
@@ -14,6 +15,8 @@ use anyhow::{Error, Result};
 use rayon::prelude::*;
 use serde_derive::Deserialize;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::thread::Thread;
 use thiserror::Error;
 
 const PROGRAM: &str = "rustypod";
@@ -235,7 +238,7 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
         }
     }
 
-    let mut pods: Vec<PodcastEntry> = Vec::new();
+    let mut pods: VecDeque<PodcastEntry> = VecDeque::new();
 
     let mut log = match Log::new() {
         Ok(_c) => _c,
@@ -249,19 +252,28 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
         pod.setup_tree(&download_dir); // TODO: Error handling
     }
 
-    let _results: Vec<Result<(), PodError>> = pods
-        .par_iter()
-        .map(|p| match p.download(&download_dir) {
-            Ok(_o) => Ok(()),
-            Err(e) => {
-                return Err(PodError::DirectoryError(format!(
-                    "Failed to create directory {}:\n{:?}",
-                    download_dir.to_str().unwrap(),
-                    e
-                )))
+    let pool = rayon::ThreadPoolBuilder::new().build().unwrap();
+
+    let mut shared_deque: Arc<Mutex<VecDeque<PodcastEntry>>> = Arc::new(Mutex::new(pods));
+
+    pool.install(|| loop {
+        let p;
+        {
+            let mut sd = shared_deque.lock().unwrap();
+            if sd.is_empty() {
+                break;
             }
+            p = sd.pop_front();
+        }
+        rayon::spawn(move || {
+            let pod = p.unwrap();
+            println!("{}: {}", pod.name(), pod.title());
         })
-        .collect();
+    });
+
+    // // ... wait
+    //
+    // pool.join()
 
     Ok(())
 }
