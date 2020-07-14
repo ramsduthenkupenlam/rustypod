@@ -59,28 +59,25 @@ impl PodcastEntry {
     }
 }
 
-pub struct Podcast {
-    name: String,
-    uri: String,
+pub struct Podcast<'a> {
+    name: &'a str,
+    uri: &'a str,
 }
 
-impl Podcast {
-    pub fn new(name: String, uri: String) -> Podcast {
-        Podcast {
-            name: name,
-            uri: uri,
-        }
+impl<'a> Podcast<'a> {
+    pub fn new(name: &'a str, uri: &'a str) -> Podcast<'a> {
+        Podcast { name, uri }
     }
 
-    pub fn name(&self) -> &String {
+    pub fn name(&self) -> &str {
         &self.name
     }
-    pub fn uri(&self) -> &String {
+    pub fn uri(&self) -> &str {
         &self.uri
     }
 
     pub fn entries(&self, episodes: usize) -> Vec<PodcastEntry> {
-        let body = blocking::get(&self.uri).unwrap().text().unwrap();
+        let body = blocking::get(self.uri).unwrap().text().unwrap();
         let feed_from_xml = parser::parse(body.as_bytes()).unwrap();
 
         let mut ents = Vec::new();
@@ -96,7 +93,7 @@ impl Podcast {
                 uri: String::from(e.content.unwrap().src.unwrap().href),
                 title: e.title.unwrap().content.to_string(),
                 date: e.published.unwrap().to_string(),
-                name: self.name.clone(),
+                name: self.name.to_string(),
             });
             n += 1;
         }

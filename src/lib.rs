@@ -9,9 +9,9 @@ use std::path::PathBuf;
 use std::{fs, str};
 
 use crate::downloader::downloader::{Podcast, PodcastEntry};
+use crate::logger::logger::Log;
 use anyhow::{Error, Result};
 use rayon::prelude::*;
-use crate::logger::logger::Log;
 use serde_derive::Deserialize;
 use std::collections::HashMap;
 use thiserror::Error;
@@ -32,6 +32,10 @@ pub enum PodError {
     /// Represents a configuration file error
     #[error("{0}")]
     DirectoryError(String),
+
+    /// Represents `LogError`s
+    #[error(transparent)]
+    PodError(#[from] logger::logger::LogError),
 
     /// Represents all other cases of `std::io::Error`.
     #[error(transparent)]
@@ -231,33 +235,33 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
         }
     }
 
-
     let mut pods: Vec<PodcastEntry> = Vec::new();
 
-    let mut log = Log::new();
-
-    match log.open_connection() {
+    let mut log = match Log::new() {
         Ok(_c) => _c,
-        Err(e) => return Err(PodError::DirectoryError(format!("{:?}",
-            e
-        )))
-    };
-
-    match log.update_log("pod", "I am pod") {
-        Ok(_c) => _c,
-        Err(e) => return Err(PodError::DirectoryError(format!("{:?}",
-            e
-        )))
+        Err(e) => return Err(PodError::DirectoryError(format!("{:?}", e))),
     };
 
     for pc in config.podcasts {
-        let pod = Podcast::new(String::from(pc.name), String::from(pc.uri));
+        let pod = Podcast::new(pc.name.as_str(), pc.uri.as_str());
+        log.create_podcast_table(pc.name.as_str())?;
         pods.extend(pod.entries(pc.episodes));
         pod.setup_tree(&download_dir); // TODO: Error handling
     }
 
-    let _results: Vec<Result<(), Error>> =
-        pods.par_iter().map(|p| p.download(&download_dir)).collect();
+    let _results: Vec<Result<(), PodError>> = pods
+        .par_iter()
+        .map(|p| match p.download(&download_dir) {
+            Ok(_o) => Ok(()),
+            Err(e) => {
+                return Err(PodError::DirectoryError(format!(
+                    "Failed to create directory {}:\n{:?}",
+                    download_dir.to_str().unwrap(),
+                    e
+                )))
+            }
+        })
+        .collect();
 
     Ok(())
 }

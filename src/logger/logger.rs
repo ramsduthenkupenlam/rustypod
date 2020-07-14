@@ -4,7 +4,7 @@ use thiserror::Error;
 const DATABASE_NAME: &str = "PodcastLibrary.db";
 
 pub struct Log {
-    conn: Option<Connection>,
+    conn: Connection,
 }
 
 /// LogError enumerates all possible errors returned by the Logger.
@@ -22,33 +22,33 @@ pub enum LogError {
     #[error("Failed to insert podcast: {0}")]
     LoggerInsertError(String),
 
+    /// Represents a logger select error
+    #[error("Failed select: {0}")]
+    LoggerSelectError(String),
+
     /// Represents a logger database error
     #[error("Failed to create table: {0}")]
     LoggerCreateTableError(String),
 }
 
 impl Log {
-    pub fn new() -> Log {
-        Log { conn: None }
-    }
-
-    pub fn open_connection(&mut self) -> Result<(), LogError> {
-        self.conn = match Connection::open(DATABASE_NAME) {
-            Ok(c) => Some(c),
+    pub fn new() -> Result<Log, LogError> {
+        let conn = match Connection::open(DATABASE_NAME) {
+            Ok(c) => c,
             Err(c) => return Err(LogError::LoggerOpenDBError(String::from(DATABASE_NAME))),
         };
 
-        Ok(())
+        Ok(Log { conn })
     }
 
-    fn create_podcast_table(name: &str, conn: &Connection) -> Result<(), LogError> {
+    pub fn create_podcast_table(&self, name: &str) -> Result<(), LogError> {
         let q = format!(
-            "CREATE TABLE IF NOT EXISTS {} (
+            "CREATE TABLE IF NOT EXISTS `{}` (
                 episode STRING PRIMARY KEY UNIQUE
             )",
             name
         );
-        match conn.execute(q.as_str(), NO_PARAMS) {
+        match self.conn.execute(q.as_str(), NO_PARAMS) {
             Ok(c) => c,
             Err(e) => {
                 return Err(LogError::LoggerCreateTableError(format!(
@@ -62,12 +62,8 @@ impl Log {
         Ok(())
     }
 
-    fn insert_episode(
-        podcast: &str,
-        episode_name: &str,
-        conn: &Connection,
-    ) -> Result<(), LogError> {
-        match conn.execute(
+    fn insert_episode(&self, podcast: &str, episode_name: &str) -> Result<(), LogError> {
+        match self.conn.execute(
             format!("INSERT INTO {} (episode) VALUES (?1)", podcast).as_str(),
             params![episode_name],
         ) {
@@ -84,14 +80,47 @@ impl Log {
         Ok(())
     }
 
-    pub fn update_log(&self, podcast: &str, episode_name: &str) -> Result<(), LogError> {
-        let conn = match &self.conn {
-            None => return Err(LogError::LoggerConnectionError(DATABASE_NAME.to_string())),
-            Some(c) => c,
+    pub fn entry_exists(&self, podcast: &str, episode_name: &str) -> Result<bool, LogError> {
+        let q = format!("SELECT EXISTS(SELECT 1 FROM {} WHERE episode= ? )", podcast);
+
+        let mut stmt = match self.conn.prepare(q.as_str()) {
+            Ok(c) => c,
+            Err(e) => {
+                return Err(LogError::LoggerSelectError(format!(
+                    "{}\n{:?}",
+                    episode_name.to_string(),
+                    e
+                )))
+            }
         };
 
-        Log::create_podcast_table(podcast, &conn)?;
-        Log::insert_episode(podcast, episode_name, &conn)?;
+        let mut rows = match stmt.query(params![episode_name]) {
+            Ok(c) => c,
+            Err(e) => {
+                return Err(LogError::LoggerSelectError(format!(
+                    "{}\n{:?}",
+                    episode_name.to_string(),
+                    e
+                )))
+            }
+        };
+
+        let result: bool = match rows.next() {
+            Err(e) => false,
+            Ok(r) => match r {
+                None => false,
+                Some(v) => match v.get(0) {
+                    Err(e) => false,
+                    Ok(b) => b,
+                },
+            },
+        };
+
+        Ok(result)
+    }
+
+    pub fn update_log(&self, podcast: &str, episode_name: &str) -> Result<(), LogError> {
+        self.insert_episode(podcast, episode_name)?;
 
         Ok(())
     }
