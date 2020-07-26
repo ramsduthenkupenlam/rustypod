@@ -50,8 +50,6 @@ impl PodcastEntry {
             p = p.join(&self.title.clone());
         };
 
-        println!("Downloaded to {} ...", p.to_str().unwrap());
-
         let mut out = File::create(p).expect("failed to create file");
         copy(&mut resp, &mut out).expect("failed to copy content");
 
@@ -78,7 +76,14 @@ impl<'a> Podcast<'a> {
 
     pub fn entries(&self, episodes: usize) -> Vec<PodcastEntry> {
         let body = blocking::get(self.uri).unwrap().text().unwrap();
-        let feed_from_xml = parser::parse(body.as_bytes()).unwrap();
+        let e = parser::parse(body.as_bytes());
+
+        if e.is_err() {
+            println!("ERR: {:?} {}", e, self.uri);
+            return Vec::new();
+        }
+
+        let feed_from_xml = e.unwrap();
 
         let mut ents = Vec::new();
 

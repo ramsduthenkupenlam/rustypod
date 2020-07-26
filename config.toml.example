@@ -9,3 +9,67 @@ episodes = 3
 name = "Python Bytes"
 uri = "https://pythonbytes.fm/episodes/rss"
 #episodes = 1 # Default
+
+[[podcasts]]
+name = "Coder Radio"
+uri = "http://coder.show/rss"
+
+[[podcasts]]
+name = "TechSNAP"
+uri = "http://techsnap.systems/rss"
+
+[[podcasts]]
+name = "Commandline Heroes"
+uri = "https://feeds.pacific-content.com/commandlineheroes"
+
+[[podcasts]]
+name = "2.5 Admins"
+uri = "https://2.5admins.com/feed/podcast"
+
+[[podcasts]]
+name = "The New Show"
+uri = "https://thenew.show/feed/podcast"
+
+[[podcasts]]
+name = "BSD Now"
+uri = "https://feeds.fireside.fm/bsdnow/rss"
+
+[[podcasts]]
+name = "Destination Linux"
+uri = "https://destinationlinux.org/feed/mp3/"
+
+[[podcasts]]
+name = "Late Night Linux"
+uri = "https://latenightlinux.com/feed/all"
+
+[[podcasts]]
+name = "Ubuntu Podcast"
+uri = "http://ubuntupodcast.org/feed/podcast/"
+
+[[podcasts]]
+name = "Bad Voltage"
+uri = "http://www.badvoltage.org/feed/mp3/"
+
+[[podcasts]]
+name = "Nixers"
+uri = "https://podcast.nixers.net/feed/feed.xml"
+
+[[podcasts]]
+name = "Code[ish]"
+uri = "https://www.heroku.com/podcasts/codeish.rss"
+
+[[podcasts]]
+name = "IRL"
+uri = "https://feeds.mozilla-podcasts.org/irl"
+
+[[podcasts]]
+name = "The Changelog"
+uri = "https://changelog.com/podcast/feed"
+
+[[podcasts]]
+name = "New Rustacean"
+uri = "https://newrustacean.com/feed.xml"
+
+[[podcasts]]
+name = "Frontburner"
+uri = "https://www.cbc.ca/podcasting/includes/frontburner.xml"

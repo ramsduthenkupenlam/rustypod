@@ -238,42 +238,55 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
         }
     }
 
-    let mut pods: VecDeque<PodcastEntry> = VecDeque::new();
+    let mut pods: Vec<PodcastEntry> = Vec::new();
 
     let mut log = match Log::new() {
-        Ok(_c) => _c,
+        Ok(c) => Arc::new(Mutex::new(c)),
         Err(e) => return Err(PodError::DirectoryError(format!("{:?}", e))),
     };
 
-    for pc in config.podcasts {
-        let pod = Podcast::new(pc.name.as_str(), pc.uri.as_str());
-        log.create_podcast_table(pc.name.as_str())?;
-        pods.extend(pod.entries(pc.episodes));
-        pod.setup_tree(&download_dir); // TODO: Error handling
+    {
+        let lck_log = log.lock().unwrap();
+        for pc in config.podcasts {
+            let pod = Podcast::new(pc.name.as_str(), pc.uri.as_str());
+            lck_log.create_podcast_table(pc.name.as_str())?;
+            pods.extend(pod.entries(pc.episodes));
+            pod.setup_tree(&download_dir); // TODO: Error handling
+        }
     }
 
-    let pool = rayon::ThreadPoolBuilder::new().build().unwrap();
-
-    let mut shared_deque: Arc<Mutex<VecDeque<PodcastEntry>>> = Arc::new(Mutex::new(pods));
-
-    pool.install(|| loop {
-        let p;
+    pods.par_iter().for_each(|p: &PodcastEntry|{
         {
-            let mut sd = shared_deque.lock().unwrap();
-            if sd.is_empty() {
-                break;
-            }
-            p = sd.pop_front();
-        }
-        rayon::spawn(move || {
-            let pod = p.unwrap();
-            println!("{}: {}", pod.name(), pod.title());
-        })
-    });
+            {
+                let lck_log = log.lock().unwrap();
+                let ex = lck_log.entry_exists(p.name(), p.title());
 
-    // // ... wait
-    //
-    // pool.join()
+                if ex.is_err() {
+                    println!("{:?}", ex);
+                }
+                if ex.unwrap() {
+                    println!("SKIPPED: {}: {}", p.name(), p.title());
+                    return;
+                }
+            }
+            {
+                let lck_log = log.lock().unwrap();
+                let e = lck_log.update_log(p.name(), p.title());
+
+                if e.is_err() {
+                    println!("{:?}", e);
+                    return;
+                }
+            }
+
+            let res = p.download(&download_dir);
+            if res.is_err() {
+                println!("FAILED: {}: {} - {:?}", p.name(), p.title(), res);
+            } else {
+                println!("DOWNLOADED: {}: {}", p.name(), p.title());
+            }
+        }
+    });
 
     Ok(())
 }
