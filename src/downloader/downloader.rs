@@ -57,6 +57,7 @@ impl PodcastEntry {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Podcast<'a> {
     name: &'a str,
     uri: &'a str,

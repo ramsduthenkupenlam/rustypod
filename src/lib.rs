@@ -245,16 +245,32 @@ pub fn run(config_file: &str) -> Result<(), PodError> {
         Err(e) => return Err(PodError::DirectoryError(format!("{:?}", e))),
     };
 
-    {
+
+    // Create tables sequentially
+    let podcasts: Vec<Result<(Podcast, usize), PodError>> = {
         let lck_log = log.lock().unwrap();
-        for pc in config.podcasts {
+        config.podcasts.iter().map(|pc| {
             let pod = Podcast::new(pc.name.as_str(), pc.uri.as_str());
             lck_log.create_podcast_table(pc.name.as_str())?;
-            pods.extend(pod.entries(pc.episodes));
             pod.setup_tree(&download_dir); // TODO: Error handling
-        }
+            Ok((pod, pc.episodes))
+        }).collect()
+    };
+
+    // Retrieve download entries in parallel
+    let pods_list: Vec<Vec<PodcastEntry>> = podcasts.into_par_iter()
+        .filter(|p| p.is_ok())
+        .map(|p| {
+            let uw = p.unwrap();
+            uw.0.entries(uw.1)
+        }).collect::<Vec<Vec<PodcastEntry>>>();
+
+    let mut pods: Vec<PodcastEntry> = Vec::new();
+    for e in pods_list {
+        pods.extend(e);
     }
 
+    // Download in parallel
     pods.par_iter().for_each(|p: &PodcastEntry|{
         {
             {
